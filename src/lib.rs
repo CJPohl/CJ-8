@@ -4,6 +4,8 @@ pub mod chip_8 {
     use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
     use sdl2::event::Event;
     use sdl2::keyboard::Keycode;
+    use sdl2::pixels::{self, Color};
+    use sdl2::rect::Rect;
     use sdl2::{render::Canvas, EventPump, Sdl};
     use std::fs;
 
@@ -17,7 +19,8 @@ pub mod chip_8 {
         stack: [u16; 16],
         sp: usize,
         memory: [u8; 4096],
-        gfx: [u16; 64 * 32],
+        pub gfx: [[u16; 64]; 32],
+
         pub draw_flag: bool,
         key: [u8; 16],
         font_set: [u8; 80],
@@ -31,11 +34,11 @@ pub mod chip_8 {
                 i: 0,
                 pc: 0x200,
                 delay_timer: 60,
-                sound_timer: 60,
+                sound_timer: 1,
                 stack: [0x000; 16],
                 sp: 0,
                 memory: [0x0; 4096],
-                gfx: [0x000; 64 * 32],
+                gfx: [[0x000; 64]; 32],
                 draw_flag: false,
                 key: [0x0; 16],
                 font_set: [
@@ -64,8 +67,13 @@ pub mod chip_8 {
             println!("Cartridge loaded successfully");
         }
 
+        // Turn off draw flag
+        pub fn falsify_df(&mut self) {
+            self.draw_flag = false;
+        }
+
         // Test hardcoded opcodes
-        pub fn emulate_cycle(&mut self, audio_unit: &AU) {
+        pub fn emulate_cycle(&mut self, audio_unit: &mut AU) {
             // Fetch
             let index = self.pc as usize;
             self.opcode = u16::from(self.memory[index]) << 8 | u16::from(self.memory[index + 1]);
@@ -79,27 +87,63 @@ pub mod chip_8 {
                     match self.opcode & 0x000F {
                         // Clears the screen
                         0x0000 => {
-                            // TBD
+                            self.gfx = [[0x0000; 64]; 32];
+                            self.pc += 2;
                         }
                         // Returns from subroutine
                         0x000E => {
-                            // TBD
+                            self.sp -= 1;
+                            self.pc = self.stack[self.sp];
                         }
                         _ => {
                             panic!("ERROR: Unknown opcode: {:#X}", self.opcode);
                         }
                     }
                 }
-
-                // Calls the subroutine at address NNN
+                // Jumps to address NNN
+                0x1000 => {
+                    self.pc = self.opcode & 0x0FFF;
+                }
+                // // Calls the subroutine at address NNN
                 0x2000 => {
                     self.stack[self.sp] = self.pc;
                     self.sp += 1;
                     self.pc = self.opcode & 0x0FFF;
                 }
+                // Skips the next instruction if VX == NN
+                0x3000 => {
+                    if self.v[(op_index & 0x0F00) >> 8] == (self.opcode & 0x00FF) as u8 {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                }
+                // Skips the next instruction if VX != NN
+                0x4000 => {
+                    if self.v[(op_index & 0x0F00) >> 8] != (self.opcode & 0x00FF) as u8 {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                }
+                // Skips the next instruction if VX == VY
+                0x5000 => {
+                    if self.v[(op_index & 0x0F00) >> 8] == self.v[(op_index & 0x00F0) >> 4] {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                }
                 // Sets VX to NN
                 0x6000 => {
                     self.v[(op_index & 0x0F00) >> 8] = (self.opcode & 0x00FF) as u8;
+                    self.pc += 2;
+                }
+                // // Adds NN to VX
+                0x7000 => {
+                    let vx = self.v[(op_index & 0x0F00) >> 8] as u16;
+                    let nn = (self.opcode & 0x00FF) as u16;
+                    self.v[(op_index & 0x0F00) >> 8] = (vx + nn) as u8;
                     self.pc += 2;
                 }
                 0x8000 => {
@@ -122,34 +166,36 @@ pub mod chip_8 {
                         }
                     }
                 }
+                // // Skips the next instruction if VX != VY
+                0x9000 => {
+                    if self.v[(op_index & 0x0F00) >> 8] != self.v[(op_index & 0x00F0) >> 4] {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                }
                 // Sets i to the address NNN
                 0xA000 => {
-                    // Execute
                     self.i = (self.opcode & 0x0FFF) as usize;
                     self.pc += 2;
                 }
                 // Draw a sprite at coord (VX, VY)
                 0xD000 => {
-                    let x = u16::from(self.v[(op_index & 0x0F00) >> 8]);
-                    let y = u16::from(self.v[(op_index & 0x00F0) >> 4]);
+                    // Set height
                     let height = self.opcode & 0x000F;
-                    let mut pixel: u16;
 
                     // Reset VF
                     self.v[0xF] = 0;
 
-                    // Loop over rows
-                    for yline in 0..height {
-                        pixel = u16::from(self.memory[self.i + yline as usize]);
-
-                        // Loop over columns
-                        for xline in 0..8 {
-                            if (pixel & (0x80 >> xline)) != 0 {
-                                if self.gfx[(x + xline + ((y + yline) * 64)) as usize] == 1 {
-                                    self.v[0xF] = 1;
-                                }
-                                self.gfx[(x + xline + ((y + yline) * 64)) as usize] ^= 1;
-                            }
+                    // This looping block is heavily inspired by starrhorne's chip-8 impl
+                    // Credit due to her
+                    for byte in 0..height {
+                        let y = (self.v[(op_index & 0x00F0) >> 4 as usize] + byte as u8) % 32;
+                        for bit in 0..8 {
+                            let x = (self.v[(op_index & 0x0F00) >> 8 as usize] + bit) % 64;
+                            let color = (self.memory[self.i + byte as usize] >> (7 - bit)) & 1;
+                            self.v[0xF] |= color as u8 & self.gfx[y as usize][x as usize] as u8;
+                            self.gfx[y as usize][x as usize] ^= color as u16;
                         }
                     }
 
@@ -158,7 +204,7 @@ pub mod chip_8 {
                 }
                 0xE000 => {
                     match self.opcode & 0x00FF {
-                        // For 9E: Skips next instruction if key stored in VX is pressed
+                        // Skips next instruction if key stored in VX is pressed
                         0x009E => {
                             if self.key[self.v[(op_index & 0x0F00) >> 8] as usize] != 0 {
                                 self.pc += 4;
@@ -174,6 +220,11 @@ pub mod chip_8 {
 
                 0xF000 => {
                     match self.opcode & 0x00FF {
+                        // Sets i to the location of the sprite for the character in VX
+                        0x0029 => {
+                            self.i = self.v[(op_index & 0x0F00) >> 8] as usize;
+                            self.pc += 2;
+                        }
                         // Stores binary decimal representation of VX at address i, i + 1, and i + 2
                         0x0033 => {
                             self.memory[self.i] = self.v[(op_index & 0x0F00) >> 8] / 100;
@@ -207,6 +258,12 @@ pub mod chip_8 {
                     audio_unit.device.pause();
                 }
             }
+
+            // Print timer state to console
+            println!(
+                "Delay Timer: {}\nSound Timer: {}",
+                self.delay_timer, self.sound_timer
+            );
         }
     }
 
@@ -259,10 +316,32 @@ pub mod chip_8 {
 
         pub fn init(&mut self) {
             self.canvas.clear();
+            self.canvas.set_draw_color(Color::RGB(0, 0, 0));
+            self.canvas.present();
+        }
+
+        pub fn draw(&mut self, scale: u32, gfx: &[[u16; 64]; 32]) {
+            for (y, row) in gfx.iter().enumerate() {
+                for (x, &col) in row.iter().enumerate() {
+                    let x = (x as u32) * scale;
+                    let y = (y as u32) * scale;
+
+                    self.canvas.set_draw_color(color(col));
+                    let _ = self
+                        .canvas
+                        .fill_rect(Rect::new(x as i32, y as i32, scale, scale));
+                }
+            }
             self.canvas.present();
         }
     }
-
+    fn color(i: u16) -> pixels::Color {
+        if i == 0 {
+            pixels::Color::RGB(0, 0, 0)
+        } else {
+            pixels::Color::RGB(255, 255, 255)
+        }
+    }
     // Audio Unit
     pub struct AU {
         pub device: AudioDevice<SquareWave>,

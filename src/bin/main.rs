@@ -1,11 +1,11 @@
-use std::env;
-
 use cj_8::chip_8::Platform;
 use cj_8::chip_8::System;
 use cj_8::chip_8::AU;
 use cj_8::chip_8::CU;
 use cj_8::chip_8::GU;
 use cj_8::chip_8::KU;
+use std::env;
+use std::{thread, time};
 
 fn main() {
     // Accept args and throw errors if necessary
@@ -36,11 +36,9 @@ fn main() {
         "CJ-8",
         WINDOW_WIDTH * scale,
         WINDOW_HEIGHT * scale,
-        // 15,
-        // 15,
     );
     let mut keyboard_unit = KU::new(&context.context);
-    let audio_unit = AU::new(&context.context);
+    let mut audio_unit = AU::new(&context.context);
     graphical_unit.init();
     println!("Front-End Units Initialized");
 
@@ -54,11 +52,15 @@ fn main() {
         quit = keyboard_unit.process_input();
 
         // Program Cycle
-        system.emulate_cycle(&audio_unit);
+        system.emulate_cycle(&mut audio_unit);
 
         // Check drawflag
         if system.draw_flag == true {
-            // graphical_unit::draw(&system.gfx);
+            graphical_unit.draw(scale, &system.gfx);
+            system.falsify_df();
         }
+
+        // Execute roughly at 500hz
+        thread::sleep(time::Duration::from_millis(500));
     }
 }
