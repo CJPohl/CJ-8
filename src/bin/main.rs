@@ -1,11 +1,13 @@
-use cj_8::chip_8::Platform;
-use cj_8::chip_8::System;
-use cj_8::chip_8::AU;
-use cj_8::chip_8::CU;
-use cj_8::chip_8::GU;
-use cj_8::chip_8::KU;
 use std::env;
 use std::{thread, time};
+extern crate cj_8;
+use crate::cj_8::units::platform::*;
+use crate::cj_8::units::cu::*;
+use crate::cj_8::units::au::*;
+use crate::cj_8::units::gu::*;
+use crate::cj_8::units::ku::*;
+use crate::cj_8::system::*;
+
 
 fn main() {
     // Accept args and throw errors if necessary
@@ -23,7 +25,7 @@ fn main() {
 
     // Init blank slate system
     let mut system = System::new();
-    println!("New CJ-8 created with cartridge");
+    println!("New CJ-8 created with cartridge path: {}", args[2]);
 
     // Setup render system and input
     const WINDOW_WIDTH: u32 = 64;
@@ -46,13 +48,10 @@ fn main() {
     system.init(cartridge.buffer);
 
     // Emu loop
-    let mut quit = false;
-    while !quit {
-        // Store keypress state
-        quit = keyboard_unit.process_input();
+    while let Ok(keys) = keyboard_unit.process_input() {
 
         // Program Cycle
-        system.emulate_cycle(&mut audio_unit);
+        system.emulate_cycle(&mut audio_unit, &keys, &keyboard_unit);
 
         // Check drawflag
         if system.draw_flag == true {
@@ -60,7 +59,10 @@ fn main() {
             system.falsify_df();
         }
 
+        // Reset Keydown state
+        keyboard_unit.reset_key_down();
+
         // Execute roughly at 500hz
-        thread::sleep(time::Duration::from_millis(500));
+        thread::sleep(time::Duration::from_millis(2));
     }
 }
