@@ -22,8 +22,9 @@ This repo doesn't contain any ROMs (Read Only Memory) which are the instructions
 
 ### Clone the Repo
 
-```
+```shell
 // Clone the repo
+
 git clone https://github.com/CJPohl/CJ-8.git
 
 cd cj-8
@@ -31,14 +32,16 @@ cd cj-8
 
 ### Running the CJ-8
 
-```
+```shell
 // Run the emulator with required arguments
 
 cargo run {WINDOW_SCALE} {PATH_TO_ROM}
 
 // For example
+
 cargo run 20 ./pong.ch8
-// This will initiate a CJ-8 window of 64x32 \* (WINDOW_SCALE) and load target ROM from path {PATH_TO_ROM} to memory
+
+// This will initiate a CJ-8 window of 64x32 * (WINDOW_SCALE) and load target ROM from path {PATH_TO_ROM} to memory
 ```
 
 ## Other
