@@ -1,5 +1,5 @@
-extern crate sdl2;
 extern crate rand;
+extern crate sdl2;
 
-pub mod units;
 pub mod system;
+pub mod units;

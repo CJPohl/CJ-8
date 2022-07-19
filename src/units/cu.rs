@@ -1,7 +1,7 @@
- use::std::fs;
- 
- // Cartridge Unit
- pub struct CU {
+use ::std::fs;
+
+// Cartridge Unit
+pub struct CU {
     pub buffer: Vec<u8>,
 }
 

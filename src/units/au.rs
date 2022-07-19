@@ -1,7 +1,11 @@
-use sdl2::{audio::{AudioDevice, AudioCallback}, Sdl, audio::AudioSpecDesired};
+use sdl2::{
+    audio::AudioSpecDesired,
+    audio::{AudioCallback, AudioDevice},
+    Sdl,
+};
 
- // Audio Unit
- pub struct AU {
+// Audio Unit
+pub struct AU {
     pub device: AudioDevice<SquareWave>,
 }
 

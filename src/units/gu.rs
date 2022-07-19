@@ -1,4 +1,4 @@
-use sdl2::{Sdl, render::Canvas, pixels::Color, rect::Rect};
+use sdl2::{pixels::Color, rect::Rect, render::Canvas, Sdl};
 
 // Graphical Unit
 pub struct GU {

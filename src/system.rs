@@ -1,5 +1,5 @@
-use rand::Rng;
 use crate::units::{au::AU, ku::KU};
+use rand::Rng;
 
 pub struct System {
     opcode: u16,
@@ -32,13 +32,12 @@ impl System {
             gfx: [[0x000; 64]; 32],
             draw_flag: false,
             font_set: [
-                0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, 0xF0, 0x10, 0xF0,
-                0x80, 0xF0, 0xF0, 0x10, 0xF0, 0x10, 0xF0, 0x90, 0x90, 0xF0, 0x10, 0x10, 0xF0,
-                0x80, 0xF0, 0x10, 0xF0, 0xF0, 0x80, 0xF0, 0x90, 0xF0, 0xF0, 0x10, 0x20, 0x40,
-                0x40, 0xF0, 0x90, 0xF0, 0x90, 0xF0, 0xF0, 0x90, 0xF0, 0x10, 0xF0, 0xF0, 0x90,
-                0xF0, 0x90, 0x90, 0xE0, 0x90, 0xE0, 0x90, 0xE0, 0xF0, 0x80, 0x80, 0x80, 0xF0,
-                0xE0, 0x90, 0x90, 0x90, 0xE0, 0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0,
-                0x80, 0x80,
+                0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, 0xF0, 0x10, 0xF0, 0x80,
+                0xF0, 0xF0, 0x10, 0xF0, 0x10, 0xF0, 0x90, 0x90, 0xF0, 0x10, 0x10, 0xF0, 0x80, 0xF0,
+                0x10, 0xF0, 0xF0, 0x80, 0xF0, 0x90, 0xF0, 0xF0, 0x10, 0x20, 0x40, 0x40, 0xF0, 0x90,
+                0xF0, 0x90, 0xF0, 0xF0, 0x90, 0xF0, 0x10, 0xF0, 0xF0, 0x90, 0xF0, 0x90, 0x90, 0xE0,
+                0x90, 0xE0, 0x90, 0xE0, 0xF0, 0x80, 0x80, 0x80, 0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0,
+                0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80,
             ],
         }
     }
@@ -154,25 +153,23 @@ impl System {
                     }
                     // Sets VX to VX or VY
                     0x0001 => {
-                        self.v[x_reg] = self.v[x_reg] | self.v[y_reg]; 
+                        self.v[x_reg] = self.v[x_reg] | self.v[y_reg];
                         self.pc += 2;
                     }
                     // Sets VX to VX and VY
                     0x0002 => {
-                        self.v[x_reg] = self.v[x_reg] & self.v[y_reg]; 
+                        self.v[x_reg] = self.v[x_reg] & self.v[y_reg];
                         self.pc += 2;
                     }
                     // Sets VX to VX xor VY
                     0x0003 => {
-                        self.v[x_reg] = self.v[x_reg] ^ self.v[y_reg]; 
+                        self.v[x_reg] = self.v[x_reg] ^ self.v[y_reg];
                         self.pc += 2;
                     }
                     // Adds the value of register VY to VX
                     0x0004 => {
                         // If sum is larger than 255 set carry flag
-                        if vy
-                            > (0xFF - vx)
-                        {
+                        if vy > (0xFF - vx) {
                             self.v[0xF] = 1;
                         } else {
                             self.v[0xF] = 0;
@@ -188,7 +185,7 @@ impl System {
                         } else {
                             self.v[0xF] = 0;
                         }
-                        
+
                         self.v[x_reg] = self.v[x_reg].wrapping_sub(self.v[y_reg]);
                         self.pc += 2;
                     }
@@ -299,13 +296,13 @@ impl System {
                     }
                     // Blocks and then put key value into VX
                     0x000A => {
-                        if keyboard_unit.kd==false {
+                        if keyboard_unit.kd == false {
                             self.pc -= 2;
                         } else {
                             for (i, key) in keys.iter().enumerate() {
-                               if *key {
-                                self.v[x_reg] = i as u8;
-                               }
+                                if *key {
+                                    self.v[x_reg] = i as u8;
+                                }
                             }
                             self.pc += 2;
                         }

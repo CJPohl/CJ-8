@@ -1,18 +1,17 @@
 use std::env;
 use std::{thread, time};
 extern crate cj_8;
-use crate::cj_8::units::platform::*;
-use crate::cj_8::units::cu::*;
+use crate::cj_8::system::*;
 use crate::cj_8::units::au::*;
+use crate::cj_8::units::cu::*;
 use crate::cj_8::units::gu::*;
 use crate::cj_8::units::ku::*;
-use crate::cj_8::system::*;
-
+use crate::cj_8::units::platform::*;
 
 fn main() {
     // Accept args and throw errors if necessary
     let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
+    if args.len() != 3 {
         eprintln!("ERROR: Failed to parse args");
         panic!("usage: cj-8 resolution-scale path-to-ROM");
     }
@@ -49,7 +48,6 @@ fn main() {
 
     // Emu loop
     while let Ok(keys) = keyboard_unit.process_input() {
-
         // Program Cycle
         system.emulate_cycle(&mut audio_unit, &keys, &keyboard_unit);
 
