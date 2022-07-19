@@ -1,12 +1,10 @@
 # CJ-8
 
-## About
-
-### What is CJ-8?
+## What is CJ-8?
 
 CJ-8 is based on the Chip-8, a "fantasy" video game console conceived in the 1970s which never had its own hardware release. Instead, it exists as its own interpreted programming language run on a Chip-8 virtual machine. Because of its simplicity in design and small number of cpu instructions, it was designed to allow video games to be programmed more easily. Over the years it has been ported to various systems where ROMs and new versions of the interpreter still get developed to this day.
 
-### Goals for this implementation
+## Goals for this implementation
 
 - **Understanding CPU Architecture**: While studying Computer Architecture on my free time, I found that an applied project like this allowed for a deeper understanding of the subject.
 
@@ -24,23 +22,24 @@ This repo doesn't contain any ROMs (Read Only Memory) which are the instructions
 
 ### Clone the Repo
 
-...
+```
 // Clone the repo
 git clone https://github.com/CJPohl/CJ-8.git
 
 cd cj-8
-...
+```
 
 ### Running the CJ-8
 
-...
+```
 // Run the emulator with required arguments
+
 cargo run {WINDOW_SCALE} {PATH_TO_ROM}
 
 // For example
 cargo run 20 ./pong.ch8
 // This will initiate a CJ-8 window of 64x32 \* (WINDOW_SCALE) and load target ROM from path {PATH_TO_ROM} to memory
-...
+```
 
 ## Other
 
